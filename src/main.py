@@ -25,10 +25,21 @@ def main():
     analyzed = []
     for video in videos:
         print(f"  Analyzing: {video['title']}")
-        analyzed.append(summarize_video(video))
+        result = summarize_video(video)
+
+        # Drop fully sponsored videos
+        if result.get("analysis", {}).get("is_sponsored", False):
+            print(f"  ** SKIPPED (sponsored): {video['channel']}: {video['title']}")
+            continue
+
+        analyzed.append(result)
+
+    if not analyzed:
+        print("All videos were sponsored or empty. Skipping digest.")
+        return
 
     # 3. Generate overall digest
-    print("\nGenerating overall market digest...")
+    print(f"\nGenerating overall market digest from {len(analyzed)} video(s)...")
     digest = generate_overall_digest(analyzed)
 
     # 4. Send email

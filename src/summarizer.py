@@ -14,8 +14,18 @@ Video: "{title}" by {channel}
 Transcript:
 {transcript}
 
+IMPORTANT — Sponsored content filtering:
+- Some videos are ENTIRELY paid promotions or sponsored advertisements for a stock or product. \
+If the video is primarily a paid promotion, sponsored content, or advertisement, set "is_sponsored" to true. \
+Examples: "This video is sponsored by...", "I was compensated to discuss...", paid stock promotions, \
+entire videos dedicated to promoting a single stock the creator was paid to cover.
+- For videos that contain SOME sponsored segments mixed with real analysis, IGNORE the sponsored \
+portions entirely. Only extract insights from the genuine, independent analysis portions.
+- Do NOT include tickers, insights, or action items that come from sponsored segments.
+
 Respond in JSON with this exact structure:
 {{
+  "is_sponsored": false,
   "summary": "2-3 sentence summary of the video's main points",
   "market_insights": ["insight 1", "insight 2", ...],
   "tickers": [
@@ -26,6 +36,7 @@ Respond in JSON with this exact structure:
 
 Focus on actionable, specific insights. For tickers, sentiment must be one of: bullish, bearish, neutral.
 If no specific tickers are mentioned, return an empty list for tickers.
+If the video is entirely sponsored, set "is_sponsored" to true and leave all other fields minimal.
 Return ONLY valid JSON, no markdown fences."""
 
 DIGEST_PROMPT = """\
