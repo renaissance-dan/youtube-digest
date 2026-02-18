@@ -24,7 +24,7 @@ CHANNEL_IDS = [
 ]
 
 # How far back to look for new videos (in hours)
-LOOKBACK_HOURS = int(os.environ.get("LOOKBACK_HOURS", "24"))
+LOOKBACK_HOURS = int(os.environ.get("LOOKBACK_HOURS", "72"))
 
 # Max videos to process per channel (to control costs)
 MAX_VIDEOS_PER_CHANNEL = int(os.environ.get("MAX_VIDEOS_PER_CHANNEL", "5"))
