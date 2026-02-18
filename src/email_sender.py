@@ -26,9 +26,6 @@ def _render_ticker_badge(ticker):
 
 def _render_video_card(video):
     a = video.get("analysis", {})
-    tickers_html = " ".join(_render_ticker_badge(t) for t in a.get("tickers", []))
-    insights_html = "".join("<li>{}</li>".format(i) for i in a.get("market_insights", []))
-    actions_html = "".join("<li>{}</li>".format(i) for i in a.get("action_items", []))
 
     channel = video.get("channel", "")
     url = video.get("url", "#")
@@ -41,14 +38,63 @@ def _render_video_card(video):
     parts.append('  <a href="{}" style="font-size:17px;font-weight:700;color:#111827;text-decoration:none;">{}</a>'.format(url, title))
     parts.append('  <p style="color:#374151;margin:12px 0;font-size:14px;line-height:1.6;">{}</p>'.format(summary))
 
-    if tickers_html:
-        parts.append('  <div style="margin:10px 0;">{}</div>'.format(tickers_html))
+    # Ticker badges with price levels and thesis
+    tickers = a.get("tickers", [])
+    if tickers:
+        parts.append('  <div style="margin:10px 0;">')
+        for t in tickers:
+            badge = _render_ticker_badge(t)
+            price_levels = t.get("price_levels", "")
+            thesis = t.get("thesis", "")
+            # Also handle old-format "context" field for backwards compatibility
+            if not thesis:
+                thesis = t.get("context", "")
+            parts.append('    <div style="margin-bottom:8px;">')
+            parts.append('      {}'.format(badge))
+            if price_levels and price_levels != "No specific levels mentioned":
+                parts.append('      <div style="font-size:12px;color:#374151;margin:4px 0 0 4px;"><strong>Levels:</strong> {}</div>'.format(price_levels))
+            if thesis:
+                parts.append('      <div style="font-size:12px;color:#6b7280;margin:2px 0 0 4px;">{}</div>'.format(thesis))
+            parts.append('    </div>')
+        parts.append('  </div>')
 
-    if insights_html:
+    # Key claims — the most important section
+    claims = a.get("key_claims", [])
+    if claims:
+        claims_html = "".join("<li>{}</li>".format(c) for c in claims)
+        parts.append('  <div style="margin-top:12px;background:#f8fafc;border-left:3px solid #3b82f6;padding:12px 16px;border-radius:0 6px 6px 0;">')
+        parts.append('    <strong style="font-size:13px;color:#1e40af;">Key Claims</strong>')
+        parts.append('    <ul style="margin:6px 0 0;padding-left:18px;color:#374151;font-size:13px;line-height:1.8;">{}</ul>'.format(claims_html))
+        parts.append('  </div>')
+
+    # Trade ideas
+    trades = a.get("trade_ideas", [])
+    if trades:
+        trades_html = "".join("<li>{}</li>".format(t) for t in trades)
+        parts.append('  <div style="margin-top:10px;">')
+        parts.append('    <strong style="font-size:13px;color:#065f46;">Trade Ideas</strong>')
+        parts.append('    <ul style="margin:4px 0 0;padding-left:18px;color:#065f46;font-size:13px;line-height:1.8;">{}</ul>'.format(trades_html))
+        parts.append('  </div>')
+
+    # Risks and warnings
+    risks = a.get("risks_and_warnings", [])
+    if risks:
+        risks_html = "".join("<li>{}</li>".format(r) for r in risks)
+        parts.append('  <div style="margin-top:10px;">')
+        parts.append('    <strong style="font-size:13px;color:#991b1b;">Risks</strong>')
+        parts.append('    <ul style="margin:4px 0 0;padding-left:18px;color:#991b1b;font-size:13px;line-height:1.8;">{}</ul>'.format(risks_html))
+        parts.append('  </div>')
+
+    # Backwards compatibility: old-format fields
+    insights = a.get("market_insights", [])
+    if insights and not claims:
+        insights_html = "".join("<li>{}</li>".format(i) for i in insights)
         parts.append('  <div style="margin-top:12px;"><strong style="font-size:13px;color:#111827;">Key Insights</strong>')
         parts.append('  <ul style="margin:4px 0 0;padding-left:20px;color:#374151;font-size:13px;line-height:1.7;">{}</ul></div>'.format(insights_html))
 
-    if actions_html:
+    actions = a.get("action_items", [])
+    if actions and not trades:
+        actions_html = "".join("<li>{}</li>".format(i) for i in actions)
         parts.append('  <div style="margin-top:10px;"><strong style="font-size:13px;color:#111827;">Action Items</strong>')
         parts.append('  <ul style="margin:4px 0 0;padding-left:20px;color:#374151;font-size:13px;line-height:1.7;">{}</ul></div>'.format(actions_html))
 
@@ -65,6 +111,8 @@ def build_email_html(digest, videos):
     conflicts_html = "".join("<li>{}</li>".format(v) for v in digest.get("conflicting_views", []))
     top_actions_html = "".join("<li>{}</li>".format(a) for a in digest.get("action_items", []))
     risk_html = "".join("<li>{}</li>".format(r) for r in digest.get("risk_alerts", []))
+    levels_html = "".join("<li>{}</li>".format(l) for l in digest.get("key_levels_to_watch", []))
+    catalysts_html = "".join("<li>{}</li>".format(c) for c in digest.get("upcoming_catalysts", []))
 
     top_tickers_html = ""
     for t in digest.get("top_tickers", []):
@@ -119,6 +167,24 @@ def build_email_html(digest, videos):
 
     # Close overview div
     html_parts.append('  </div>')
+
+    # Key Levels to Watch
+    if levels_html:
+        html_parts.append(
+            '  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:18px;margin-bottom:20px;">'
+            '    <h3 style="margin:0 0 8px;font-size:15px;color:#1e40af;">Key Levels to Watch</h3>'
+            '    <ul style="margin:0;padding-left:20px;color:#1e40af;font-size:14px;line-height:1.8;">{}</ul>'
+            '  </div>'.format(levels_html)
+        )
+
+    # Upcoming Catalysts
+    if catalysts_html:
+        html_parts.append(
+            '  <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:18px;margin-bottom:20px;">'
+            '    <h3 style="margin:0 0 8px;font-size:15px;color:#92400e;">Upcoming Catalysts</h3>'
+            '    <ul style="margin:0;padding-left:20px;color:#92400e;font-size:14px;line-height:1.8;">{}</ul>'
+            '  </div>'.format(catalysts_html)
+        )
 
     # Top action items
     if top_actions_html:
