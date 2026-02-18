@@ -50,6 +50,17 @@ Prioritize action items by how many channels support them. Flag conflicting view
 Return ONLY valid JSON, no markdown fences."""
 
 
+def _clean_json_response(text: str) -> str:
+    """Strip markdown code fences and whitespace from Claude's JSON response."""
+    import re
+    cleaned = text.strip()
+    # Remove ```json ... ``` or ``` ... ``` wrappers
+    match = re.match(r"^```(?:json)?\s*\n?(.*?)\n?\s*```$", cleaned, re.DOTALL)
+    if match:
+        cleaned = match.group(1).strip()
+    return cleaned
+
+
 def summarize_video(video: dict) -> dict:
     """Summarize a single video transcript using Claude."""
     # Truncate very long transcripts to stay within context limits
@@ -67,11 +78,15 @@ def summarize_video(video: dict) -> dict:
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw_text = response.content[0].text
+    cleaned = _clean_json_response(raw_text)
+
     try:
-        result = json.loads(response.content[0].text)
+        result = json.loads(cleaned)
     except json.JSONDecodeError:
+        print(f"  Warning: Could not parse JSON for '{video['title']}', using raw text")
         result = {
-            "summary": response.content[0].text[:500],
+            "summary": cleaned[:500],
             "market_insights": [],
             "tickers": [],
             "action_items": [],
@@ -101,11 +116,15 @@ def generate_overall_digest(analyzed_videos: list[dict]) -> dict:
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw_text = response.content[0].text
+    cleaned = _clean_json_response(raw_text)
+
     try:
-        return json.loads(response.content[0].text)
+        return json.loads(cleaned)
     except json.JSONDecodeError:
+        print("  Warning: Could not parse digest JSON, using raw text")
         return {
-            "market_overview": response.content[0].text[:500],
+            "market_overview": cleaned[:500],
             "consensus_themes": [],
             "conflicting_views": [],
             "top_tickers": [],
